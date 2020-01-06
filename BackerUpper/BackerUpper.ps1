@@ -2,6 +2,7 @@
 * Flatten everything in top level folder
 * Fix installed application list
 * Warn if local Dragon is installed
+* Add known license locations (Dragon, Adobe, etc.)
 * Fix false bookmark backup
 * See if there's a License Crawler CLI
 * Improve log formatting and information
@@ -12,20 +13,10 @@
 #>
 
 #$ErrorActionPreference = "SilentlyContinue"
-$host.UI.RawUI.WindowTitle = "BackerUpper"
+#$host.UI.RawUI.WindowTitle = "BackerUpper"
 
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
-
-function Convert-ToBytes($num) {
-    $suffix = @('B','KB','MB','GB','TB')
-    $i = 0
-    while ($num -gt 1KB) {
-        $num = $num / 1KB
-        $i++
-    }
-    '{0:N1} {1}' -f $num, $suffix[$i]
-}
 
 #################### REPORT ####################
 function CreateReport {
@@ -190,76 +181,129 @@ function BackupData {
     }
 }
 
-$userFolders = @(
-    "$env:USERPROFILE\Desktop"
-    "$env:USERPROFILE\Documents"
-    "$env:USERPROFILE\Downloads"
-    "$env:USERPROFILE\Favorites"
-    "$env:USERPROFILE\Pictures"
-    "$env:USERPROFILE\Videos"
-)
+function BackupMode {
+    Write-Host "Choose backup mode:`n" -ForegroundColor Yellow
+    Write-Host " [1] Full backup ($(Convert-ToBytes $backupSize))`n [2] Report only"
 
-foreach ($folder in $userFolders) {
-    $backupSize += (Get-ChildItem $folder -Recurse | Measure-Object Length -Sum).Sum
-}
+    $backupMode = Read-Host -Prompt "`nMode"
 
-Write-Host "Choose backup mode:`n" -ForegroundColor Yellow
-Write-Host " [1] Full backup ($(Convert-ToBytes $backupSize))`n [2] Report only"
+    Write-Host "`nChoose backup drive:`n" -ForegroundColor Yellow
 
-$backupMode = Read-Host -Prompt "`nMode"
+    if (!$backupMode -or $backupMode -eq 1) {
+        $backupMode = 1
+        $usbDrives = @()
+        Get-WmiObject -Class Win32_LogicalDisk |
+        Where-Object { $_.DeviceID -ne "C:" -and $_.FreeSpace -gt ($backupSize + 5MB) }
+    }
+    else {
+        $backupMode = 2
+        $usbDrives = @() 
+        Get-WmiObject -Class Win32_LogicalDisk |
+        Where-Object { $_.DeviceID -ne "C:" -and $_.FreeSpace -gt 5MB }
+    }
 
-Write-Host "`nChoose backup drive:`n" -ForegroundColor Yellow
+    for ($i = 1; $i -le $usbDrives.Count; $i++) {
+        Write-Host " [$i] $($usbDrives[$i - 1].VolumeName) ($($usbDrives[$i - 1].DeviceID))"
+    }
 
-if (!$backupMode -or $backupMode -eq 1) {
-    $backupMode = 1
-    $usbDrives = @()
-    Get-WmiObject -Class Win32_LogicalDisk |
-    Where-Object { $_.DeviceID -ne "C:" -and $_.FreeSpace -gt ($backupSize + 5MB) }
-}
-else {
-    $backupMode = 2
-    $usbDrives = @() 
-    Get-WmiObject -Class Win32_LogicalDisk |
-    Where-Object { $_.DeviceID -ne "C:" -and $_.FreeSpace -gt 5MB }
-}
+    Write-Host " [$($usbDrives.Count + 1)] Desktop"
 
-for ($i = 1; $i -le $usbDrives.Count; $i++) {
-    Write-Host " [$i] $($usbDrives[$i - 1].VolumeName) ($($usbDrives[$i - 1].DeviceID))"
-}
+    $backupDrive = Read-Host -Prompt "`nDrive"
 
-Write-Host " [$($usbDrives.Count + 1)] Desktop"
+    if (!$backupDrive) {
+        $backupDrive = 1
+    }
 
-$backupDrive = Read-Host -Prompt "`nDrive"
+    $backupFolder = "$($env:COMPUTERNAME) ($(Get-Date -Format "M-d-yyyy"))"
 
-if (!$backupDrive) {
-    $backupDrive = 1
-}
+    if ($backupDrive -eq ($usbDrives.Count + 1)) {
+        $backupPath = "$env:USERPROFILE\Desktop\$backupFolder"
+    }
+    else {
+        $backupPath = "$($usbDrives[$backupDrive - 1].DeviceID)\$backupFolder"
+    }
 
-$backupFolder = "$($env:COMPUTERNAME) ($(Get-Date -Format "M-d-yyyy"))"
+    $backupFile = "$backupPath\$env:COMPUTERNAME Report ($(Get-Date -Format "M-d-yyyy")).txt"
 
-if ($backupDrive -eq ($usbDrives.Count + 1)) {
-    $backupPath = "$env:USERPROFILE\Desktop\$backupFolder"
-}
-else {
-    $backupPath = "$($usbDrives[$backupDrive - 1].DeviceID)\$backupFolder"
-}
-
-$backupFile = "$backupPath\$env:COMPUTERNAME Report ($(Get-Date -Format "M-d-yyyy")).txt"
-
-if (!(Test-Path $backupPath)) {
-    New-Item -Path $backupPath -ItemType Directory | Out-Null
-}
-else {
-    Write-Host "`r"
-    Write-Warning "A current backup already exists on the $(Split-Path $backupPath -Qualifier) drive. Remove and retry?"
-    $backupRemoval = Read-Host "[Y]es/[N]o"
-    
-    if (!$backupRemoval -or $backupRemoval.ToLower() -eq "y") {
-        Remove-Item -Path $backupPath -Recurse -Force
-        Start-Sleep -Seconds 1
+    if (!(Test-Path $backupPath)) {
         New-Item -Path $backupPath -ItemType Directory | Out-Null
     }
     else {
-        Break
+        Write-Host "`r"
+        Write-Warning "A current backup already exists on the $(Split-Path $backupPath -Qualifier) drive. Remove and retry?"
+        $backupRemoval = Read-Host "[Y]es/[N]o"
+    
+        if (!$backupRemoval -or $backupRemoval.ToLower() -eq "y") {
+            Remove-Item -Path $backupPath -Recurse -Force
+            Start-Sleep -Seconds 1
+            New-Item -Path $backupPath -ItemType Directory | Out-Null
+        }
+        else {
+            break
+        }
     }
 }
+
+$userFolders = @(
+    "Desktop"
+    "Documents"
+    "Downloads"
+    "Favorites"
+    "Pictures"
+    "Videos"
+)
+
+function CalculateBackup {
+    $suffix = @('B','KB','MB','GB','TB')
+    $i = 0
+    while ($num -gt 1KB) {
+        $num = $num / 1KB
+        $i++
+    }
+    #'{0:N1} {1}' -f $num, $suffix[$i]
+
+    foreach ($user in $users) {
+        foreach ($folder in $userFolders) {
+            [array]$script:backupSizes = (Get-ChildItem "C:\Users\$user\$folder" -Recurse | Measure-Object Length -Sum).Sum
+        }
+    }
+}
+
+function EnumUsers {
+    $enabledUsers = Get-LocalUser | Where-Object { $_.Enabled -eq $true -and $_.Name -notlike 'Administrator' } | Select-Object -ExpandProperty Name
+    foreach ($user in $enabledUsers) {
+        if (Test-Path "C:\Users\$user") {
+            [array]$script:users += $user
+        }
+    }
+}
+
+[void][System.Windows.Forms.Application]::EnableVisualStyles()
+. (Join-Path $PSScriptRoot 'BackerUpper.designer.ps1')
+
+<#
+foreach ($user in $users) {
+    $item = New-Object System.Windows.Forms.ListViewItem('test')
+    #$item.SubItems.Add($user)
+    $lvwSources.Items.Add($item)
+}
+#>
+
+#$lvwSources
+EnumUsers
+CalculateBackup
+foreach ($user in $users) {
+    $listViewItem = New-Object System.Windows.Forms.ListViewItem($users[$users.IndexOf($user)])
+    #$listViewItem.SubItems.Text
+    $colUser.ListView.Items.Add($listViewItem.SubItems.Text)
+    $colBackupSize.ListView.Items.Add($backupSizes[$users.IndexOf($user)])
+}
+
+<#
+$listViewItem.SubItems.Add((([System.Windows.Forms.ListViewItem`+ListViewSubItem]$subItem = `
+                New-Object System.Windows.Forms.ListViewItem`+ListViewSubItem) `
+                | %{$subItem.Text = $Data[$i]; 
+                    $subItem;}));
+#>
+
+$frmMain.ShowDialog()
