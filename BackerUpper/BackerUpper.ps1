@@ -253,19 +253,22 @@ $userFolders = @(
     "Videos"
 )
 
-function CalculateBackup {
+function ConvertToBytes {
     $suffix = @('B','KB','MB','GB','TB')
     $i = 0
-    while ($num -gt 1KB) {
-        $num = $num / 1KB
+    while ($backupSize -gt 1KB) {
+        $backupSize = $backupSize / 1KB
         $i++
     }
-    #'{0:N1} {1}' -f $num, $suffix[$i]
-
+    $script:backupSizeCon = '{0:N1} {1}' -f $backupSize, $suffix[$i]
+}
+ 
+function CalculateBackup {
     foreach ($user in $users) {
-        foreach ($folder in $userFolders) {
-            [array]$script:backupSizes = (Get-ChildItem "C:\Users\$user\$folder" -Recurse | Measure-Object Length -Sum).Sum
+        foreach ($folder in $userFolders.GetEnumerator()) {
+            $script:backupSize += (Get-ChildItem "C:\Users\$user\$folder" -Recurse | Measure-Object Length -Sum).Sum
         }
+        ConvertToBytes
     }
 }
 
@@ -277,6 +280,17 @@ function EnumUsers {
         }
     }
 }
+
+$hashTableObject = @{ }
+
+$hashTableObject.Name = "Name"
+$hashTableObject.Location = "Home"
+
+$hashTableObject # This prints showing the values as expected.
+$hashTableObject | ft Name, Location # This does not show the columns as expected. Someone with an "object" would expect to see the name and location property values printed.
+
+$psObject = [PSCustomObject] @{Name="Name";Location="Home" }
+$psObject | ft Name, Location #prints as expected.
 
 [void][System.Windows.Forms.Application]::EnableVisualStyles()
 . (Join-Path $PSScriptRoot 'BackerUpper.designer.ps1')
@@ -296,14 +310,7 @@ foreach ($user in $users) {
     $listViewItem = New-Object System.Windows.Forms.ListViewItem($users[$users.IndexOf($user)])
     #$listViewItem.SubItems.Text
     $colUser.ListView.Items.Add($listViewItem.SubItems.Text)
-    $colBackupSize.ListView.Items.Add($backupSizes[$users.IndexOf($user)])
+    $colBackupSize.ListView.Items.Add($backupSizeCon[$users.IndexOf($user)])
 }
-
-<#
-$listViewItem.SubItems.Add((([System.Windows.Forms.ListViewItem`+ListViewSubItem]$subItem = `
-                New-Object System.Windows.Forms.ListViewItem`+ListViewSubItem) `
-                | %{$subItem.Text = $Data[$i]; 
-                    $subItem;}));
-#>
 
 $frmMain.ShowDialog()
