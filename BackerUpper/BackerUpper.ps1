@@ -254,63 +254,39 @@ $userFolders = @(
 )
 
 function ConvertToBytes {
+    param (
+        $num
+    )
     $suffix = @('B','KB','MB','GB','TB')
     $i = 0
-    while ($backupSize -gt 1KB) {
-        $backupSize = $backupSize / 1KB
+    while ($num -gt 1KB) {
+        $num = $num / 1KB
         $i++
     }
-    $script:backupSizeCon = '{0:N1} {1}' -f $backupSize, $suffix[$i]
+    '{0:N1} {1}' -f $num, $suffix[$i]
 }
  
-function CalculateBackup {
-    foreach ($user in $users) {
-        foreach ($folder in $userFolders.GetEnumerator()) {
-            $script:backupSize += (Get-ChildItem "C:\Users\$user\$folder" -Recurse | Measure-Object Length -Sum).Sum
-        }
-        ConvertToBytes
-    }
-}
-
-function EnumUsers {
+function CalculateUserBackups {
     $enabledUsers = Get-LocalUser | Where-Object { $_.Enabled -eq $true -and $_.Name -notlike 'Administrator' } | Select-Object -ExpandProperty Name
     foreach ($user in $enabledUsers) {
         if (Test-Path "C:\Users\$user") {
-            [array]$script:users += $user
+            foreach ($folder in $userFolders.GetEnumerator()) {
+                $totalBackupSize += (Get-ChildItem "C:\Users\$user\$folder" -Recurse | Measure-Object Length -Sum).Sum
+            }
+            $userBackupSize = ConvertToBytes $totalBackupSize
+            $script:UserBackups += [pscustomobject]@{ User=$user; BackupSize=$userBackupSize }
         }
     }
 }
 
-$hashTableObject = @{ }
-
-$hashTableObject.Name = "Name"
-$hashTableObject.Location = "Home"
-
-$hashTableObject # This prints showing the values as expected.
-$hashTableObject | ft Name, Location # This does not show the columns as expected. Someone with an "object" would expect to see the name and location property values printed.
-
-$psObject = [PSCustomObject] @{Name="Name";Location="Home" }
-$psObject | ft Name, Location #prints as expected.
+CalculateUserBackups
 
 [void][System.Windows.Forms.Application]::EnableVisualStyles()
 . (Join-Path $PSScriptRoot 'BackerUpper.designer.ps1')
 
-<#
-foreach ($user in $users) {
-    $item = New-Object System.Windows.Forms.ListViewItem('test')
-    #$item.SubItems.Add($user)
-    $lvwSources.Items.Add($item)
-}
-#>
-
-#$lvwSources
-EnumUsers
-CalculateBackup
-foreach ($user in $users) {
-    $listViewItem = New-Object System.Windows.Forms.ListViewItem($users[$users.IndexOf($user)])
-    #$listViewItem.SubItems.Text
-    $colUser.ListView.Items.Add($listViewItem.SubItems.Text)
-    $colBackupSize.ListView.Items.Add($backupSizeCon[$users.IndexOf($user)])
+foreach ($object in $UserBackups) {
+    $colUser.ListView.Items.Add($UserBackups.User)
+    $colBackupSize.ListView.Items.Add($UserBackups.BackupSize)
 }
 
 $frmMain.ShowDialog()

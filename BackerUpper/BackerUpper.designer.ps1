@@ -12,6 +12,8 @@ $frmMain = New-Object -TypeName System.Windows.Forms.Form
 [System.Windows.Forms.ListView]$lvwDestination = $null
 [System.Windows.Forms.ColumnHeader]$colDriveLetter = $null
 [System.Windows.Forms.ColumnHeader]$colDriveSpace = $null
+[System.Windows.Forms.GroupBox]$gbxStatus = $null
+[System.Windows.Forms.TextBox]$tbxStatus = $null
 [System.Windows.Forms.Button]$button1 = $null
 function InitializeComponent
 {
@@ -27,13 +29,16 @@ $lvwDestination = (New-Object -TypeName System.Windows.Forms.ListView)
 $colDriveLetter = (New-Object -TypeName System.Windows.Forms.ColumnHeader)
 $colDriveName = (New-Object -TypeName System.Windows.Forms.ColumnHeader)
 $colDriveSpace = (New-Object -TypeName System.Windows.Forms.ColumnHeader)
+$gbxStatus = (New-Object -TypeName System.Windows.Forms.GroupBox)
+$tbxStatus = (New-Object -TypeName System.Windows.Forms.TextBox)
 $gbxSources.SuspendLayout()
 $gbxDestination.SuspendLayout()
+$gbxStatus.SuspendLayout()
 $frmMain.SuspendLayout()
 #
 #btnBackup
 #
-$btnBackup.Location = (New-Object -TypeName System.Drawing.Point -ArgumentList @([System.Int32]194,[System.Int32]275))
+$btnBackup.Location = (New-Object -TypeName System.Drawing.Point -ArgumentList @([System.Int32]194,[System.Int32]408))
 $btnBackup.Name = [System.String]'btnBackup'
 $btnBackup.Size = (New-Object -TypeName System.Drawing.Size -ArgumentList @([System.Int32]80,[System.Int32]28))
 $btnBackup.TabIndex = [System.Int32]4
@@ -42,7 +47,7 @@ $btnBackup.UseVisualStyleBackColor = $true
 #
 #btnReport
 #
-$btnReport.Location = (New-Object -TypeName System.Drawing.Point -ArgumentList @([System.Int32]108,[System.Int32]275))
+$btnReport.Location = (New-Object -TypeName System.Drawing.Point -ArgumentList @([System.Int32]108,[System.Int32]408))
 $btnReport.Name = [System.String]'btnReport'
 $btnReport.Size = (New-Object -TypeName System.Drawing.Size -ArgumentList @([System.Int32]80,[System.Int32]28))
 $btnReport.TabIndex = [System.Int32]5
@@ -123,9 +128,30 @@ $colDriveName.Width = [System.Int32]130
 $colDriveSpace.Text = [System.String]'Free Space'
 $colDriveSpace.Width = [System.Int32]75
 #
+#gbxStatus
+#
+$gbxStatus.Controls.Add($tbxStatus)
+$gbxStatus.Location = (New-Object -TypeName System.Drawing.Point -ArgumentList @([System.Int32]9,[System.Int32]274))
+$gbxStatus.Name = [System.String]'gbxStatus'
+$gbxStatus.Padding = (New-Object -TypeName System.Windows.Forms.Padding -ArgumentList @([System.Int32]7,[System.Int32]2,[System.Int32]7,[System.Int32]7))
+$gbxStatus.Size = (New-Object -TypeName System.Drawing.Size -ArgumentList @([System.Int32]265,[System.Int32]129))
+$gbxStatus.TabIndex = [System.Int32]14
+$gbxStatus.TabStop = $false
+$gbxStatus.Text = [System.String]'Status'
+#
+#tbxStatus
+#
+$tbxStatus.Location = (New-Object -TypeName System.Drawing.Point -ArgumentList @([System.Int32]10,[System.Int32]19))
+$tbxStatus.Multiline = $true
+$tbxStatus.Name = [System.String]'tbxStatus'
+$tbxStatus.ReadOnly = $true
+$tbxStatus.Size = (New-Object -TypeName System.Drawing.Size -ArgumentList @([System.Int32]245,[System.Int32]99))
+$tbxStatus.TabIndex = [System.Int32]0
+#
 #frmMain
 #
-$frmMain.ClientSize = (New-Object -TypeName System.Drawing.Size -ArgumentList @([System.Int32]283,[System.Int32]311))
+$frmMain.ClientSize = (New-Object -TypeName System.Drawing.Size -ArgumentList @([System.Int32]283,[System.Int32]443))
+$frmMain.Controls.Add($gbxStatus)
 $frmMain.Controls.Add($gbxDestination)
 $frmMain.Controls.Add($gbxSources)
 $frmMain.Controls.Add($btnReport)
@@ -139,6 +165,8 @@ $frmMain.Text = [System.String]'BackerUpper'
 $frmMain.TopMost = $true
 $gbxSources.ResumeLayout($false)
 $gbxDestination.ResumeLayout($false)
+$gbxStatus.ResumeLayout($false)
+$gbxStatus.PerformLayout()
 $frmMain.ResumeLayout($false)
 Add-Member -InputObject $frmMain -Name base -Value $base -MemberType NoteProperty
 Add-Member -InputObject $frmMain -Name lvwSources -Value $lvwSources -MemberType NoteProperty
@@ -152,6 +180,8 @@ Add-Member -InputObject $frmMain -Name colDriveName -Value $colDriveName -Member
 Add-Member -InputObject $frmMain -Name lvwDestination -Value $lvwDestination -MemberType NoteProperty
 Add-Member -InputObject $frmMain -Name colDriveLetter -Value $colDriveLetter -MemberType NoteProperty
 Add-Member -InputObject $frmMain -Name colDriveSpace -Value $colDriveSpace -MemberType NoteProperty
+Add-Member -InputObject $frmMain -Name gbxStatus -Value $gbxStatus -MemberType NoteProperty
+Add-Member -InputObject $frmMain -Name tbxStatus -Value $tbxStatus -MemberType NoteProperty
 Add-Member -InputObject $frmMain -Name button1 -Value $button1 -MemberType NoteProperty
 }
 . InitializeComponent
