@@ -17,7 +17,7 @@ $frmMain = New-Object -TypeName System.Windows.Forms.Form
 [System.Windows.Forms.Button]$button1 = $null
 function InitializeComponent
 {
-$resources = Invoke-Expression (Get-Content -Path (Join-Path $PSScriptRoot 'BackerUpper.resources.psd1') -Raw)
+$resources = . (Join-Path $PSScriptRoot 'BackerUpper.resources.ps1')
 $btnBackup = (New-Object -TypeName System.Windows.Forms.Button)
 $btnReport = (New-Object -TypeName System.Windows.Forms.Button)
 $gbxSources = (New-Object -TypeName System.Windows.Forms.GroupBox)

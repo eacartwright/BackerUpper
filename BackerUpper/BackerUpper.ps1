@@ -267,26 +267,36 @@ function ConvertToBytes {
 }
  
 function CalculateUserBackups {
-    $enabledUsers = Get-LocalUser | Where-Object { $_.Enabled -eq $true -and $_.Name -notlike 'Administrator' } | Select-Object -ExpandProperty Name
+    $script:UserBackups = @()
+    $enabledUsers = Get-LocalUser |
+        Where-Object { $_.Enabled -eq $true -and $_.Name -notlike 'Administrator' } |
+        Select-Object -ExpandProperty Name
+
     foreach ($user in $enabledUsers) {
         if (Test-Path "C:\Users\$user") {
+            $totalBackupSize = 0
+
             foreach ($folder in $userFolders.GetEnumerator()) {
-                $totalBackupSize += (Get-ChildItem "C:\Users\$user\$folder" -Recurse | Measure-Object Length -Sum).Sum
+                $totalBackupSize += (Get-ChildItem "C:\Users\$user\$folder" -Recurse |
+                    Measure-Object -Property Length -Sum -ErrorAction SilentlyContinue).Sum
             }
+
             $userBackupSize = ConvertToBytes $totalBackupSize
-            $script:UserBackups += [pscustomobject]@{ User=$user; BackupSize=$userBackupSize }
+            $script:UserBackups += [pscustomobject]@{ User = $user; BackupSize = $userBackupSize }
         }
     }
 }
+
 
 CalculateUserBackups
 
 [void][System.Windows.Forms.Application]::EnableVisualStyles()
 . (Join-Path $PSScriptRoot 'BackerUpper.designer.ps1')
 
-foreach ($object in $UserBackups) {
-    $colUser.ListView.Items.Add($UserBackups.User)
-    $colBackupSize.ListView.Items.Add($UserBackups.BackupSize)
+foreach ($Entry in $UserBackups) {
+    $ListView_Item = New-Object System.Windows.Forms.ListViewItem($Entry.User)
+    [void]$ListView_Item.SubItems.Add($Entry.BackupSize)
+    $lvwSources.Items.AddRange(($ListView_Item))
 }
 
 $frmMain.ShowDialog()
